@@ -195,10 +195,16 @@ export default function Services() {
 
             <FadeUp delay={0.6}>
               <div className="text-center md:text-left py-12 px-8 bg-brand-bg/5 border border-brand-bg/10 rounded-sm">
-                <h4 className="text-xl md:text-2xl font-serif text-brand-primary uppercase tracking-wider leading-relaxed">
+                <h4 className="text-xl md:text-2xl font-serif text-brand-primary uppercase tracking-wider leading-relaxed mb-6">
                   YOUR SOCIAL MEDIA BRINGS PEOPLE IN.<br />
                   <span className="text-brand-bg">YOUR WEBSITE GIVES THEM A REASON TO STAY.</span>
                 </h4>
+                <a
+                  href="#websites"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-brand-primary/60 text-brand-primary hover:text-white hover:border-brand-primary text-[10px] tracking-[0.2em] font-bold uppercase transition-colors"
+                >
+                  Explore Website Design Experience &darr;
+                </a>
               </div>
             </FadeUp>
           </div>

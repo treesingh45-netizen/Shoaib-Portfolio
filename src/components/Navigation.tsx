@@ -23,7 +23,7 @@ export default function Navigation() {
       </div>
 
       <nav className="hidden lg:flex items-center gap-10">
-        {['Home', 'About', 'Services', 'Experience', 'Work'].map((item) => (
+        {['Home', 'About', 'Services', 'Websites', 'Experience', 'Work'].map((item) => (
           <a
             key={item}
             href={`#${item.toLowerCase()}`}

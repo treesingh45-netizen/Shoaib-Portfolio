@@ -19,7 +19,7 @@ export default function Intro() {
             </h2>
             <FadeUp delay={0.2} className="max-w-2xl mb-16">
               <p className="text-lg md:text-xl text-brand-charcoal/80 leading-relaxed font-sans mb-6">
-                I am a creative and results-driven Social Media Manager and Digital Marketing Specialist with over 3 years of experience in social media marketing, content creation, digital advertising, and modern website design.
+                I am a creative and results-driven Social Media Manager and Digital Marketing Specialist with over 4 years of experience in social media marketing, content creation, digital advertising, and modern website design.
               </p>
               <p className="text-lg md:text-xl text-brand-charcoal/80 leading-relaxed font-sans">
                 I help businesses strengthen their online presence through strategic content, consistent brand communication, audience engagement, and performance-focused marketing.
@@ -29,7 +29,7 @@ export default function Intro() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-16">
               <FadeUp delay={0.3}>
                 <div className="p-6 bg-white border border-bronze rounded-xl flex flex-col items-center justify-center">
-                  <span className="font-serif text-3xl md:text-4xl text-brand-primary mb-2">3+</span>
+                  <span className="font-serif text-3xl md:text-4xl text-brand-primary mb-2">4+</span>
                   <span className="text-[8px] font-bold tracking-widest uppercase text-brand-charcoal/60 text-center">Years Exp.</span>
                 </div>
               </FadeUp>

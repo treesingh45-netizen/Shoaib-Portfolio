@@ -9,6 +9,7 @@ import BackgroundParticles from './components/BackgroundParticles';
 import Hero from './sections/Hero';
 import Intro from './sections/Intro';
 import Services from './sections/Services';
+import WebsiteDesignExperience from './sections/WebsiteDesignExperience';
 import Experience from './sections/Experience';
 import Work from './sections/Work';
 import Contact from './sections/Contact';
@@ -23,6 +24,7 @@ export default function App() {
         <Hero />
         <Intro />
         <Services />
+        <WebsiteDesignExperience />
         <Experience />
         <Work />
         <Contact />
