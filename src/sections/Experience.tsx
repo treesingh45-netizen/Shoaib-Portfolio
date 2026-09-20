@@ -62,24 +62,23 @@ export default function Experience() {
 
               <div>
                 <FadeUp><h4 className="text-2xl font-serif text-brand-primary mb-8 pb-4 border-b border-brand-charcoal/10">Education</h4></FadeUp>
-                <div className="space-y-10">
-                  <FadeUp delay={0.2} className="relative pl-6 border-l border-brand-charcoal/20">
-                    <div className="absolute w-2 h-2 bg-brand-charcoal/40 rounded-full -left-[4.5px] top-2"></div>
-                    <h5 className="text-lg font-bold tracking-wider text-brand-charcoal uppercase mb-2">Bachelor's Degree</h5>
-                    <p className="text-xs font-bold tracking-widest text-brand-primary uppercase mb-2">Karachi University</p>
-                    <p className="text-brand-charcoal/70 leading-relaxed font-sans">
-                      Currently pursuing a Bachelor’s degree from Karachi University to further strengthen academic and professional knowledge.
+                <div className="space-y-8">
+                  <FadeUp delay={0.2} className="relative pl-6 border-l-2 border-brand-primary bg-white p-6 rounded-sm border border-brand-charcoal/10 shadow-xs">
+                    <div className="absolute w-2.5 h-2.5 bg-brand-primary rounded-full -left-[5px] top-6 ring-4 ring-brand-bg"></div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="px-2.5 py-0.5 text-[9px] font-mono uppercase tracking-widest bg-brand-primary/10 text-brand-primary font-semibold rounded-xs">
+                        Currently Studying
+                      </span>
+                    </div>
+                    <h5 className="text-lg md:text-xl font-serif font-bold text-brand-charcoal uppercase mb-1">
+                      Bachelor of Science in Computer Science (BSCS)
+                    </h5>
+                    <p className="text-xs font-bold tracking-widest text-brand-primary uppercase mb-3">
+                      University of Karachi, Karachi
                     </p>
-                  </FadeUp>
-                  <FadeUp delay={0.3} className="relative pl-6 border-l border-brand-charcoal/20">
-                    <div className="absolute w-2 h-2 bg-brand-charcoal/40 rounded-full -left-[4.5px] top-2"></div>
-                    <h5 className="text-lg font-bold tracking-wider text-brand-charcoal uppercase mb-2">Intermediate — Commerce</h5>
-                    <p className="text-brand-charcoal/70 leading-relaxed font-sans">Completed Intermediate in Commerce.</p>
-                  </FadeUp>
-                  <FadeUp delay={0.4} className="relative pl-6 border-l border-brand-charcoal/20">
-                    <div className="absolute w-2 h-2 bg-brand-charcoal/40 rounded-full -left-[4.5px] top-2"></div>
-                    <h5 className="text-lg font-bold tracking-wider text-brand-charcoal uppercase mb-2">Matriculation — Science</h5>
-                    <p className="text-brand-charcoal/70 leading-relaxed font-sans">Completed Matriculation in Science under the Board of Secondary Education.</p>
+                    <p className="text-sm text-brand-charcoal/75 leading-relaxed font-sans">
+                      Specializing in computing systems, algorithmic problem solving, software engineering principles, and modern web architectures.
+                    </p>
                   </FadeUp>
                 </div>
               </div>

@@ -24,7 +24,11 @@ const whyMe = [
   { title: "CLIENT-FOCUSED COMMUNICATION", desc: "Clear communication, reliability, and understanding the client's goals are central to my approach." }
 ];
 
-export default function Work() {
+interface WorkProps {
+  onOpenStartProject?: () => void;
+}
+
+export default function Work({ onOpenStartProject }: WorkProps) {
   return (
     <section id="work" className="relative w-full py-24 md:py-32 px-6 md:px-12 z-10 bg-brand-charcoal text-brand-bg">
       <div className="max-w-7xl mx-auto w-full">
@@ -126,9 +130,17 @@ export default function Work() {
               <h3 className="text-3xl md:text-5xl lg:text-6xl font-serif text-brand-bg leading-tight mb-4 uppercase">
                 Creativity Gets Attention.
               </h3>
-              <h3 className="text-3xl md:text-5xl lg:text-6xl font-serif text-brand-primary leading-tight uppercase">
+              <h3 className="text-3xl md:text-5xl lg:text-6xl font-serif text-brand-primary leading-tight uppercase mb-8">
                 Strategy Creates Results.
               </h3>
+              <button
+                type="button"
+                onClick={onOpenStartProject}
+                className="inline-flex items-center gap-2 bg-brand-primary text-brand-bg px-8 py-4 text-xs font-bold tracking-[0.2em] uppercase hover:bg-white hover:text-brand-charcoal transition-colors cursor-pointer"
+              >
+                <span>Start A Project With Shoaib</span>
+                &rarr;
+              </button>
             </FadeUp>
 
           </div>

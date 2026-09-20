@@ -54,7 +54,11 @@ const platforms = ["INSTAGRAM", "FACEBOOK", "META ADS", "TIKTOK", "LINKEDIN", "G
 const tools = ["PHOTOSHOP", "CANVA", "HIGGSFIELD AI", "FILMORA", "CAPCUT", "CHATGPT"];
 const webTools = ["WORDPRESS", "WEBFLOW", "WIX STUDIO", "FIGMA", "ANTIGRAVITY", "CLAUDE"];
 
-export default function Services() {
+interface ServicesProps {
+  onOpenStartProject?: () => void;
+}
+
+export default function Services({ onOpenStartProject }: ServicesProps) {
   return (
     <section id="services" className="relative w-full py-24 md:py-32 px-6 md:px-12 z-10 bg-brand-charcoal text-brand-bg">
       <div className="max-w-7xl mx-auto w-full">

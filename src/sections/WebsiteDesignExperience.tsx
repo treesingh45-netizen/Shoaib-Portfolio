@@ -165,7 +165,11 @@ const projects: Project[] = [
   }
 ];
 
-export default function WebsiteDesignExperience() {
+interface WebsiteDesignExperienceProps {
+  onOpenStartProject?: () => void;
+}
+
+export default function WebsiteDesignExperience({ onOpenStartProject }: WebsiteDesignExperienceProps) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   return (
@@ -265,12 +269,12 @@ export default function WebsiteDesignExperience() {
                   </p>
                 </div>
                 <div className="pt-6 border-t border-brand-bg/10 mt-6">
-                  <a
-                    href="#contact"
-                    className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] uppercase text-brand-primary hover:text-white transition-colors"
+                  <button
+                    onClick={onOpenStartProject}
+                    className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] uppercase text-brand-primary hover:text-white transition-colors cursor-pointer"
                   >
                     Start Your Website Project <ArrowRight size={14} />
-                  </a>
+                  </button>
                 </div>
               </div>
             </FadeUp>
@@ -542,13 +546,15 @@ export default function WebsiteDesignExperience() {
                 >
                   Close Case Study
                 </button>
-                <a
-                  href="#contact"
-                  onClick={() => setSelectedProject(null)}
-                  className="w-full sm:w-auto px-8 py-3 bg-brand-primary hover:bg-brand-charcoal text-brand-bg text-xs font-bold tracking-[0.2em] uppercase transition-colors text-center"
+                <button
+                  onClick={() => {
+                    setSelectedProject(null);
+                    onOpenStartProject?.();
+                  }}
+                  className="w-full sm:w-auto px-8 py-3 bg-brand-primary hover:bg-brand-charcoal text-brand-bg text-xs font-bold tracking-[0.2em] uppercase transition-colors text-center cursor-pointer"
                 >
                   Discuss A Similar Website &rarr;
-                </a>
+                </button>
               </div>
             </motion.div>
           </div>

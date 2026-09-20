@@ -1,7 +1,11 @@
 import React from 'react';
 import { FadeUp, RevealText } from '../components/AnimatedText';
 
-export default function Intro() {
+interface IntroProps {
+  onOpenStartProject?: () => void;
+}
+
+export default function Intro({ onOpenStartProject }: IntroProps) {
   return (
     <section id="about" className="relative w-full py-24 md:py-32 px-6 md:px-12 z-10 bg-brand-bg/80 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto w-full">
