@@ -10,6 +10,8 @@ dotenv.config();
 const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'inquiries.json');
+const BRANDING_FILE = path.join(DATA_DIR, 'branding.json');
+const DEFAULT_FAVICON_SVG = path.join(process.cwd(), 'public', 'favicon.svg');
 const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'shoaibop65@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'shoaib2026';
 
@@ -21,6 +23,50 @@ if (!fs.existsSync(DATA_DIR)) {
 // Ensure db file exists
 if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(DB_FILE, JSON.stringify([], null, 2), 'utf-8');
+}
+
+interface BrandingSettings {
+  faviconDataUrl?: string;
+  driveUrl?: string;
+  resolvedDriveUrl?: string;
+  fileName?: string;
+  showInNavbar?: boolean;
+  updatedAt?: string;
+}
+
+function getBranding(): BrandingSettings {
+  try {
+    if (fs.existsSync(BRANDING_FILE)) {
+      const raw = fs.readFileSync(BRANDING_FILE, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Error reading branding settings:', err);
+  }
+  return { showInNavbar: true };
+}
+
+function saveBranding(settings: BrandingSettings): void {
+  try {
+    fs.writeFileSync(BRANDING_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving branding settings:', err);
+  }
+}
+
+function extractGoogleDriveDirectUrl(url: string): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  // Match /file/d/{ID} or id={ID}
+  const fileMatch = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch && fileMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${fileMatch[1]}`;
+  }
+  const idParamMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idParamMatch && idParamMatch[1]) {
+    return `https://lh3.googleusercontent.com/d/${idParamMatch[1]}`;
+  }
+  return null;
 }
 
 function getInquiries(): any[] {
@@ -235,6 +281,55 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Serve dynamic favicon (supports uploaded Logo.png, Google Drive file link, or default monogram SVG)
+  const serveFavicon = (req: Request, res: Response): void => {
+    const branding = getBranding();
+
+    if (branding.faviconDataUrl && branding.faviconDataUrl.startsWith('data:')) {
+      const matches = branding.faviconDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        const mimeType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Cache-Control', 'no-cache');
+        res.send(buffer);
+        return;
+      }
+    }
+
+    if (branding.resolvedDriveUrl) {
+      res.redirect(branding.resolvedDriveUrl);
+      return;
+    }
+
+    if (fs.existsSync(DEFAULT_FAVICON_SVG)) {
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.sendFile(DEFAULT_FAVICON_SVG);
+      return;
+    }
+
+    res.status(404).end();
+  };
+
+  app.get('/api/favicon', serveFavicon);
+  app.get('/favicon.ico', serveFavicon);
+
+  // Public Branding Info
+  app.get('/api/branding', (req: Request, res: Response): void => {
+    const branding = getBranding();
+    const hasCustom = Boolean(branding.faviconDataUrl || branding.resolvedDriveUrl);
+    res.json({
+      success: true,
+      hasCustomFavicon: hasCustom,
+      faviconUrl: hasCustom ? `/api/favicon?v=${encodeURIComponent(branding.updatedAt || '1')}` : '/favicon.svg',
+      driveUrl: branding.driveUrl || '',
+      fileName: branding.fileName || (hasCustom ? 'Logo.png' : 'favicon.svg'),
+      showInNavbar: branding.showInNavbar !== false,
+      updatedAt: branding.updatedAt || null,
+    });
+  });
+
   // Submit inquiry
   app.post('/api/inquiries', async (req: Request, res: Response): Promise<void> => {
     try {
@@ -379,6 +474,59 @@ async function startServer() {
 
     saveInquiries(inquiries);
     res.json({ success: true, message: 'Inquiry deleted successfully' });
+  });
+
+  // Admin: Update Favicon / Branding (upload Logo.png or set Google Drive direct link)
+  app.post('/api/branding', checkAdminAuth, (req: Request, res: Response): void => {
+    const { faviconDataUrl, driveUrl, fileName, showInNavbar } = req.body;
+    const current = getBranding();
+
+    let resolvedDriveUrl = current.resolvedDriveUrl;
+    if (driveUrl !== undefined) {
+      if (!driveUrl.trim()) {
+        resolvedDriveUrl = undefined;
+      } else {
+        const extracted = extractGoogleDriveDirectUrl(driveUrl);
+        if (extracted) {
+          resolvedDriveUrl = extracted;
+        } else if (driveUrl.startsWith('http://') || driveUrl.startsWith('https://')) {
+          resolvedDriveUrl = driveUrl.trim();
+        }
+      }
+    }
+
+    const updated: BrandingSettings = {
+      faviconDataUrl: faviconDataUrl !== undefined ? faviconDataUrl : current.faviconDataUrl,
+      driveUrl: driveUrl !== undefined ? driveUrl : current.driveUrl,
+      resolvedDriveUrl,
+      fileName: fileName !== undefined ? fileName : current.fileName,
+      showInNavbar: showInNavbar !== undefined ? Boolean(showInNavbar) : current.showInNavbar !== false,
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveBranding(updated);
+    const hasCustom = Boolean(updated.faviconDataUrl || updated.resolvedDriveUrl);
+    res.json({
+      success: true,
+      message: 'Favicon & branding updated successfully.',
+      hasCustomFavicon: hasCustom,
+      faviconUrl: hasCustom ? `/api/favicon?v=${encodeURIComponent(updated.updatedAt || '1')}` : '/favicon.svg',
+      driveUrl: updated.driveUrl || '',
+      fileName: updated.fileName || (hasCustom ? 'Logo.png' : 'favicon.svg'),
+      showInNavbar: updated.showInNavbar,
+      updatedAt: updated.updatedAt,
+    });
+  });
+
+  // Admin: Reset Favicon to default monogram
+  app.delete('/api/branding', checkAdminAuth, (req: Request, res: Response): void => {
+    saveBranding({ showInNavbar: true, updatedAt: new Date().toISOString() });
+    res.json({
+      success: true,
+      message: 'Favicon reset to default monogram.',
+      hasCustomFavicon: false,
+      faviconUrl: '/favicon.svg',
+    });
   });
 
   // Vite middleware for development

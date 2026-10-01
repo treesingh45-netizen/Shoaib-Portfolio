@@ -16,13 +16,18 @@ import {
   ExternalLink,
   ChevronDown,
   Clock,
-  Download
+  Download,
+  Image as ImageIcon,
+  Upload,
+  Link as LinkIcon,
+  RotateCcw
 } from 'lucide-react';
 import { StoredInquiry } from '../types/inquiry';
 
 interface AdminPortalModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onBrandingUpdated?: (faviconUrl: string, showInNavbar: boolean) => void;
 }
 
 const statusBadgeClasses: Record<string, string> = {
@@ -33,15 +38,26 @@ const statusBadgeClasses: Record<string, string> = {
   Completed: 'bg-neutral-200 text-neutral-800 border-neutral-400',
 };
 
-export default function AdminPortalModal({ isOpen, onClose }: AdminPortalModalProps) {
+export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }: AdminPortalModalProps) {
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState<'inquiries' | 'branding'>('inquiries');
   const [inquiries, setInquiries] = useState<StoredInquiry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [selectedInquiry, setSelectedInquiry] = useState<StoredInquiry | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Branding / Favicon state
+  const [faviconPreview, setFaviconPreview] = useState<string>('/api/favicon');
+  const [uploadedDataUrl, setUploadedDataUrl] = useState<string | undefined>(undefined);
+  const [uploadedFileName, setUploadedFileName] = useState<string>('Logo.png');
+  const [driveUrl, setDriveUrl] = useState<string>('');
+  const [showInNavbar, setShowInNavbar] = useState<boolean>(true);
+  const [hasCustomFavicon, setHasCustomFavicon] = useState<boolean>(false);
+  const [brandingStatusMsg, setBrandingStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSavingBranding, setIsSavingBranding] = useState<boolean>(false);
 
   // ESC to close
   useEffect(() => {
@@ -66,6 +82,7 @@ export default function AdminPortalModal({ isOpen, onClose }: AdminPortalModalPr
       if (res.ok && data.success) {
         setInquiries(data.inquiries);
         setIsAuthenticated(true);
+        fetchBrandingInfo();
       } else {
         setLoginError(data.error || 'Authentication failed. Please check the admin password.');
         setIsAuthenticated(false);
@@ -80,6 +97,101 @@ export default function AdminPortalModal({ isOpen, onClose }: AdminPortalModalPr
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     fetchInquiries(password);
+  };
+
+  const fetchBrandingInfo = async () => {
+    try {
+      const res = await fetch('/api/branding');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFaviconPreview(data.faviconUrl || '/favicon.svg');
+        setDriveUrl(data.driveUrl || '');
+        setUploadedFileName(data.fileName || 'Logo.png');
+        setShowInNavbar(data.showInNavbar !== false);
+        setHasCustomFavicon(Boolean(data.hasCustomFavicon));
+      }
+    } catch (err) {
+      console.error('Error loading branding info:', err);
+    }
+  };
+
+  const handleFaviconFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setBrandingStatusMsg({ type: 'error', text: 'File exceeds 5MB limit. Please choose a smaller PNG, SVG, or ICO file.' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setUploadedDataUrl(result);
+      setFaviconPreview(result);
+      setUploadedFileName(file.name);
+      setBrandingStatusMsg(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveBranding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingBranding(true);
+    setBrandingStatusMsg(null);
+    try {
+      const res = await fetch('/api/branding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': password,
+        },
+        body: JSON.stringify({
+          faviconDataUrl: uploadedDataUrl,
+          driveUrl: driveUrl.trim(),
+          fileName: uploadedFileName,
+          showInNavbar,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFaviconPreview(data.faviconUrl);
+        setHasCustomFavicon(Boolean(data.hasCustomFavicon));
+        setBrandingStatusMsg({ type: 'success', text: 'Browser tab favicon updated!' });
+        onBrandingUpdated?.(data.faviconUrl, Boolean(data.hasCustomFavicon));
+      } else {
+        setBrandingStatusMsg({ type: 'error', text: data.error || 'Failed to save favicon settings.' });
+      }
+    } catch (err) {
+      setBrandingStatusMsg({ type: 'error', text: 'Network error while saving favicon.' });
+    } finally {
+      setIsSavingBranding(false);
+    }
+  };
+
+  const handleResetBranding = async () => {
+    setIsSavingBranding(true);
+    setBrandingStatusMsg(null);
+    try {
+      const res = await fetch('/api/branding', {
+        method: 'DELETE',
+        headers: {
+          'x-admin-password': password,
+        },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUploadedDataUrl(undefined);
+        setDriveUrl('');
+        setFaviconPreview('/favicon.svg');
+        setHasCustomFavicon(false);
+        setShowInNavbar(false);
+        setBrandingStatusMsg({ type: 'success', text: 'Reset to default S. monogram favicon.' });
+        onBrandingUpdated?.('/favicon.svg', false);
+      }
+    } catch (err) {
+      setBrandingStatusMsg({ type: 'error', text: 'Failed to reset favicon.' });
+    } finally {
+      setIsSavingBranding(false);
+    }
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
@@ -154,26 +266,60 @@ export default function AdminPortalModal({ isOpen, onClose }: AdminPortalModalPr
             className="relative w-full max-w-6xl h-[90vh] bg-white border border-brand-charcoal/20 shadow-2xl z-10 flex flex-col rounded-sm overflow-hidden text-brand-charcoal"
           >
             {/* Header */}
-            <div className="px-6 py-4 border-b border-brand-charcoal/15 bg-brand-bg flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-brand-charcoal/15 bg-brand-bg flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand-primary text-brand-bg flex items-center justify-center font-bold text-xs">
-                  MS
-                </div>
+                <img
+                  src={faviconPreview}
+                  alt="Site Favicon"
+                  referrerPolicy="no-referrer"
+                  className="w-8 h-8 rounded-xs object-contain bg-brand-charcoal p-0.5"
+                />
                 <div>
                   <h3 className="text-sm font-serif font-bold uppercase tracking-wider text-brand-charcoal">
-                    Client Submissions & Project Inquiries
+                    Portfolio Admin & Brand Settings
                   </h3>
                   <p className="text-[10px] font-mono text-brand-charcoal/60 uppercase">
-                    Admin Storage & Pipeline Management
+                    Client Inquiries & Favicon Configuration
                   </p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 text-brand-charcoal/60 hover:text-brand-charcoal hover:bg-brand-charcoal/10 transition-colors"
-              >
-                <X size={20} />
-              </button>
+
+              <div className="flex items-center gap-3">
+                {isAuthenticated && (
+                  <div className="flex bg-white border border-brand-charcoal/15 rounded-xs p-0.5 text-[10px] font-mono uppercase font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('inquiries')}
+                      className={`px-3 py-1.5 transition-colors cursor-pointer ${
+                        activeTab === 'inquiries'
+                          ? 'bg-brand-charcoal text-brand-bg'
+                          : 'text-brand-charcoal/70 hover:text-brand-primary'
+                      }`}
+                    >
+                      Inquiries ({inquiries.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('branding')}
+                      className={`px-3 py-1.5 transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        activeTab === 'branding'
+                          ? 'bg-brand-primary text-brand-bg'
+                          : 'text-brand-charcoal/70 hover:text-brand-primary'
+                      }`}
+                    >
+                      <ImageIcon size={12} />
+                      Favicon & Logo
+                    </button>
+                  </div>
+                )}
+
+                <button
+                  onClick={onClose}
+                  className="p-2 text-brand-charcoal/60 hover:text-brand-charcoal hover:bg-brand-charcoal/10 transition-colors cursor-pointer"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
             {/* Content Area */}
@@ -215,6 +361,115 @@ export default function AdminPortalModal({ isOpen, onClose }: AdminPortalModalPr
                   >
                     {isLoading ? <RefreshCw size={14} className="animate-spin" /> : 'Unlock Inquiries'}
                   </button>
+                </form>
+              </div>
+            ) : activeTab === 'branding' ? (
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-brand-bg/30">
+                <form
+                  onSubmit={handleSaveBranding}
+                  className="max-w-2xl mx-auto bg-white border border-brand-charcoal/15 p-6 md:p-8 shadow-xs space-y-6"
+                >
+                  <div className="border-b border-brand-charcoal/10 pb-4 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-brand-primary block">
+                        Site Identity
+                      </span>
+                      <h4 className="text-xl font-serif font-bold text-brand-charcoal">
+                        Favicon & Brand Logo Settings
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-3 bg-brand-bg px-3 py-2 border border-brand-charcoal/15">
+                      <img
+                        src={faviconPreview}
+                        alt="Current Favicon Preview"
+                        referrerPolicy="no-referrer"
+                        className="w-9 h-9 object-contain rounded-xs"
+                      />
+                      <div className="text-left">
+                        <span className="text-[9px] font-mono uppercase text-brand-charcoal/50 block">
+                          Active Tab Icon
+                        </span>
+                        <span className="text-xs font-mono font-bold text-brand-charcoal truncate max-w-[120px] block">
+                          {hasCustomFavicon || uploadedDataUrl ? uploadedFileName : 'Default S. Monogram'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {brandingStatusMsg && (
+                    <div
+                      className={`p-3.5 text-xs border rounded-xs ${
+                        brandingStatusMsg.type === 'success'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-red-50 border-red-200 text-red-700'
+                      }`}
+                    >
+                      {brandingStatusMsg.text}
+                    </div>
+                  )}
+
+                  {/* Option 1: Upload Logo.png directly */}
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-charcoal">
+                      1. Upload Favicon / Logo File (Logo.png, SVG, ICO)
+                    </label>
+                    <p className="text-xs text-brand-charcoal/60">
+                      Upload your <code className="font-mono bg-brand-bg px-1 py-0.5">Logo.png</code> directly from your computer for instant, reliable hosting as your website favicon.
+                    </p>
+                    <label className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-brand-charcoal/25 hover:border-brand-primary bg-brand-bg/40 p-6 cursor-pointer transition-colors text-center">
+                      <Upload size={22} className="text-brand-primary mb-2" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-brand-charcoal">
+                        Click to Select Logo.png or Drag & Drop
+                      </span>
+                      <span className="text-[10px] font-mono text-brand-charcoal/50 mt-1">
+                        PNG, SVG, JPG, WEBP or ICO (Max 5MB)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/png,image/svg+xml,image/jpeg,image/webp,image/x-icon"
+                        onChange={handleFaviconFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Option 2: Google Drive File Share Link */}
+                  <div className="space-y-2 pt-2 border-t border-brand-charcoal/10">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-charcoal flex items-center gap-1.5">
+                      <LinkIcon size={13} className="text-brand-primary" />
+                      2. Or Paste Google Drive Image Share Link / Direct Image URL
+                    </label>
+                    <p className="text-xs text-brand-charcoal/60">
+                      If your logo is on Google Drive, right-click the file in Drive &rarr; <strong>Share</strong> &rarr; <strong>Anyone with the link</strong> &rarr; <strong>Copy link</strong> (e.g. <code className="font-mono text-[11px]">https://drive.google.com/file/d/YOUR_FILE_ID/view</code>) and paste it below:
+                    </p>
+                    <input
+                      type="url"
+                      value={driveUrl}
+                      onChange={(e) => setDriveUrl(e.target.value)}
+                      placeholder="https://drive.google.com/file/d/1a2b3c4d5e6f7g8h9i0j/view?usp=sharing"
+                      className="w-full bg-brand-bg/40 border border-brand-charcoal/20 px-3.5 py-2.5 text-xs font-mono focus:border-brand-primary focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="pt-4 border-t border-brand-charcoal/15 flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={handleResetBranding}
+                      disabled={isSavingBranding}
+                      className="px-4 py-2.5 border border-brand-charcoal/25 text-xs font-mono uppercase hover:bg-brand-bg transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <RotateCcw size={13} />
+                      Reset to Default S. Monogram
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingBranding}
+                      className="px-6 py-2.5 bg-brand-primary hover:bg-brand-charcoal text-brand-bg text-xs font-bold tracking-[0.18em] uppercase transition-colors cursor-pointer"
+                    >
+                      {isSavingBranding ? 'Saving...' : 'Save & Apply Favicon'}
+                    </button>
+                  </div>
                 </form>
               </div>
             ) : (

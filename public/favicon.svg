@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a1a" />
+      <stop offset="100%" stop-color="#26221e" />
+    </linearGradient>
+    <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c48b56" />
+      <stop offset="50%" stop-color="#9b6738" />
+      <stop offset="100%" stop-color="#7d5027" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Square -->
+  <rect width="128" height="128" rx="24" fill="url(#bgGrad)" />
+  <!-- Subtle Inner Frame -->
+  <rect x="8" y="8" width="112" height="112" rx="18" fill="none" stroke="url(#bronzeGrad)" stroke-width="2" stroke-opacity="0.65" />
+  <!-- Monogram MS / S Editorial Typography -->
+  <text
+    x="58"
+    y="86"
+    text-anchor="middle"
+    font-family="Georgia, 'Playfair Display', 'Times New Roman', serif"
+    font-size="68"
+    font-weight="600"
+    fill="#faf8f3"
+    letter-spacing="-2"
+  >S</text>
+  <!-- Signature Bronze Accent Dot -->
+  <circle cx="92" cy="80" r="7" fill="url(#bronzeGrad)" />
+</svg>
