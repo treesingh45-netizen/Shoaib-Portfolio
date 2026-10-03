@@ -11,6 +11,7 @@ const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'inquiries.json');
 const BRANDING_FILE = path.join(DATA_DIR, 'branding.json');
+const EMAIL_SETTINGS_FILE = path.join(DATA_DIR, 'email_settings.json');
 const DEFAULT_FAVICON_SVG = path.join(process.cwd(), 'public', 'favicon.svg');
 const NOTIFICATION_EMAIL = process.env.NOTIFICATION_EMAIL || 'shoaibop65@gmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'shoaib2026';
@@ -32,6 +33,47 @@ interface BrandingSettings {
   fileName?: string;
   showInNavbar?: boolean;
   updatedAt?: string;
+}
+
+export interface EmailSettings {
+  provider: 'gmail' | 'smtp' | 'web3forms';
+  recipientEmail: string;
+  smtpHost: string;
+  smtpPort: number;
+  smtpSecure?: boolean;
+  smtpUser: string;
+  smtpPass: string;
+  web3formsKey?: string;
+  updatedAt?: string;
+}
+
+function getEmailSettings(): EmailSettings {
+  try {
+    if (fs.existsSync(EMAIL_SETTINGS_FILE)) {
+      const raw = fs.readFileSync(EMAIL_SETTINGS_FILE, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Error reading email settings:', err);
+  }
+  return {
+    provider: 'gmail',
+    recipientEmail: process.env.NOTIFICATION_EMAIL || 'shoaibop65@gmail.com',
+    smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+    smtpPort: parseInt(process.env.SMTP_PORT || '465', 10),
+    smtpSecure: true,
+    smtpUser: process.env.SMTP_USER || 'shoaibop65@gmail.com',
+    smtpPass: process.env.SMTP_PASS || '',
+    web3formsKey: process.env.WEB3FORMS_KEY || '',
+  };
+}
+
+function saveEmailSettings(settings: EmailSettings): void {
+  try {
+    fs.writeFileSync(EMAIL_SETTINGS_FILE, JSON.stringify(settings, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error saving email settings:', err);
+  }
 }
 
 function getBranding(): BrandingSettings {
@@ -88,6 +130,9 @@ function saveInquiries(inquiries: any[]): void {
 }
 
 async function sendEmailNotification(inquiry: any) {
+  const settings = getEmailSettings();
+  const recipient = settings.recipientEmail || NOTIFICATION_EMAIL;
+
   const dateStr = new Date(inquiry.submissionDate).toLocaleString('en-US', {
     timeZone: 'Asia/Karachi',
     dateStyle: 'full',
@@ -106,7 +151,7 @@ async function sendEmailNotification(inquiry: any) {
 
   const textBody = `
 ========================================
-NEW PROJECT INQUIRY
+NEW PROJECT INQUIRY FOR SHOAIB
 ========================================
 Submission Date: ${dateStr} (PKT)
 Inquiry ID: ${inquiry.id}
@@ -156,18 +201,18 @@ Reply directly to client: mailto:${inquiry.email}
 `;
 
   const htmlBody = `
-  <div style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #1a1a1a; background-color: #fdfbf7; padding: 24px; border: 1px solid #e2ddd3;">
-    <div style="border-bottom: 2px solid #8c7355; padding-bottom: 12px; margin-bottom: 20px;">
+  <div style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #1a1a1a; background-color: #faf8f3; padding: 24px; border: 1px solid #e2ddd3;">
+    <div style="border-bottom: 2px solid #a06634; padding-bottom: 12px; margin-bottom: 20px;">
       <h1 style="color: #1a1a1a; margin: 0 0 6px 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">New Project Inquiry</h1>
-      <p style="margin: 0; color: #8c7355; font-size: 13px; font-weight: bold;">Submitted: ${dateStr}</p>
+      <p style="margin: 0; color: #a06634; font-size: 13px; font-weight: bold;">Submitted: ${dateStr}</p>
     </div>
 
     <div style="margin-bottom: 20px; padding: 16px; background: #ffffff; border: 1px solid #ece7de;">
-      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8c7355; margin-top: 0;">1. Client Information</h2>
+      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a06634; margin-top: 0;">1. Client Information</h2>
       <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <tr><td style="padding: 4px 0; width: 160px; font-weight: bold;">Name:</td><td>${inquiry.fullName}</td></tr>
         <tr><td style="padding: 4px 0; font-weight: bold;">Company:</td><td>${inquiry.companyName || '—'}</td></tr>
-        <tr><td style="padding: 4px 0; font-weight: bold;">Email:</td><td><a href="mailto:${inquiry.email}" style="color: #8c7355; font-weight: bold;">${inquiry.email}</a></td></tr>
+        <tr><td style="padding: 4px 0; font-weight: bold;">Email:</td><td><a href="mailto:${inquiry.email}" style="color: #a06634; font-weight: bold;">${inquiry.email}</a></td></tr>
         <tr><td style="padding: 4px 0; font-weight: bold;">Phone / WhatsApp:</td><td><a href="https://wa.me/${(inquiry.phone || '').replace(/[^0-9]/g, '')}" style="color: #1a1a1a;">${inquiry.phone || '—'}</a></td></tr>
         <tr><td style="padding: 4px 0; font-weight: bold;">Country:</td><td>${inquiry.country || '—'}</td></tr>
         <tr><td style="padding: 4px 0; font-weight: bold;">Preferred Contact:</td><td>${inquiry.preferredContact || 'Email'}</td></tr>
@@ -175,20 +220,20 @@ Reply directly to client: mailto:${inquiry.email}
     </div>
 
     <div style="margin-bottom: 20px; padding: 16px; background: #ffffff; border: 1px solid #ece7de;">
-      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8c7355; margin-top: 0;">2. Project & Service Required</h2>
+      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a06634; margin-top: 0;">2. Project & Service Required</h2>
       <p style="font-size: 14px; margin: 4px 0;"><strong>Service:</strong> <span style="background: #f4efe6; padding: 2px 8px; font-weight: bold;">${inquiry.serviceNeeded}</span> ${inquiry.otherService ? `(${inquiry.otherService})` : ''}</p>
       <p style="font-size: 14px; margin: 4px 0;"><strong>Estimated Budget:</strong> <span style="color: #2e7d32; font-weight: bold;">${inquiry.budget || 'Not specified'}</span> ${inquiry.customBudget ? `[Custom: ${inquiry.customBudget}]` : ''}</p>
       <p style="font-size: 14px; margin: 4px 0;"><strong>Timeline:</strong> ${inquiry.timeline || 'Flexible'} | <strong>Target Date:</strong> ${inquiry.targetDate || 'N/A'}</p>
       
       <p style="font-size: 14px; font-weight: bold; margin-top: 12px; margin-bottom: 4px;">Project Description:</p>
-      <div style="padding: 12px; background: #fdfbf7; border-left: 3px solid #8c7355; font-size: 14px; white-space: pre-wrap; line-height: 1.5;">${inquiry.projectDescription || 'No description provided.'}</div>
+      <div style="padding: 12px; background: #faf8f3; border-left: 3px solid #a06634; font-size: 14px; white-space: pre-wrap; line-height: 1.5;">${inquiry.projectDescription || 'No description provided.'}</div>
 
       <p style="font-size: 14px; font-weight: bold; margin-top: 12px; margin-bottom: 4px;">Main Goals:</p>
       <p style="font-size: 13px; color: #444; margin: 0;">${Array.isArray(inquiry.goals) && inquiry.goals.length ? inquiry.goals.join(' • ') : 'None specified'}</p>
     </div>
 
     <div style="margin-bottom: 20px; padding: 16px; background: #ffffff; border: 1px solid #ece7de;">
-      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8c7355; margin-top: 0;">3. Social Media Information</h2>
+      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a06634; margin-top: 0;">3. Social Media Information</h2>
       <p style="font-size: 13px; margin: 4px 0;"><strong>Instagram:</strong> ${inquiry.socialMedia?.instagram || '—'}</p>
       <p style="font-size: 13px; margin: 4px 0;"><strong>Facebook:</strong> ${inquiry.socialMedia?.facebook || '—'}</p>
       <p style="font-size: 13px; margin: 4px 0;"><strong>TikTok:</strong> ${inquiry.socialMedia?.tiktok || '—'}</p>
@@ -200,7 +245,7 @@ Reply directly to client: mailto:${inquiry.email}
     </div>
 
     <div style="margin-bottom: 20px; padding: 16px; background: #ffffff; border: 1px solid #ece7de;">
-      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8c7355; margin-top: 0;">4. Website Information</h2>
+      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a06634; margin-top: 0;">4. Website Information</h2>
       <p style="font-size: 13px; margin: 4px 0;"><strong>Has Website:</strong> ${inquiry.website?.hasWebsite ? 'Yes' : 'No'}</p>
       ${inquiry.website?.hasWebsite ? `
         <p style="font-size: 13px; margin: 4px 0;"><strong>Current URL:</strong> <a href="${inquiry.website?.currentUrl}" target="_blank">${inquiry.website?.currentUrl}</a></p>
@@ -212,60 +257,76 @@ Reply directly to client: mailto:${inquiry.email}
 
     ${inquiry.additionalInfo ? `
       <div style="margin-bottom: 20px; padding: 16px; background: #ffffff; border: 1px solid #ece7de;">
-        <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8c7355; margin-top: 0;">5. Additional Notes & References</h2>
+        <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a06634; margin-top: 0;">5. Additional Notes & References</h2>
         <div style="font-size: 14px; white-space: pre-wrap; line-height: 1.5; color: #333;">${inquiry.additionalInfo}</div>
       </div>
     ` : ''}
 
     <div style="margin-bottom: 24px; padding: 16px; background: #ffffff; border: 1px solid #ece7de;">
-      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8c7355; margin-top: 0;">6. Uploaded References / Files</h2>
+      <h2 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #a06634; margin-top: 0;">6. Uploaded References / Files</h2>
       <ul style="font-size: 13px; color: #444; margin: 0; padding-left: 20px;">
         ${filesListHtml}
       </ul>
     </div>
 
     <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2ddd3;">
-      <a href="mailto:${inquiry.email}?subject=Re: Your Project Inquiry - Muhammad Shoaib" style="display: inline-block; background-color: #8c7355; color: #ffffff; text-decoration: none; padding: 12px 24px; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">
+      <a href="mailto:${inquiry.email}?subject=Re: Your Project Inquiry - Muhammad Shoaib" style="display: inline-block; background-color: #a06634; color: #ffffff; text-decoration: none; padding: 12px 24px; font-weight: bold; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">
         Reply to Client (${inquiry.email}) &rarr;
       </a>
     </div>
   </div>
   `;
 
-  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+  // Check if SMTP or Gmail password configured
+  if (settings.smtpPass) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        secure: process.env.SMTP_PORT === '465',
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
+      const isGmail = (settings.smtpHost || '').toLowerCase().includes('gmail');
+      const transporter = nodemailer.createTransport(
+        isGmail
+          ? {
+              service: 'gmail',
+              auth: {
+                user: settings.smtpUser || recipient,
+                pass: settings.smtpPass,
+              },
+            }
+          : {
+              host: settings.smtpHost,
+              port: settings.smtpPort || 587,
+              secure: settings.smtpPort === 465,
+              auth: {
+                user: settings.smtpUser,
+                pass: settings.smtpPass,
+              },
+            }
+      );
 
       await transporter.sendMail({
-        from: `"Shoaib Portfolio" <${process.env.SMTP_USER}>`,
-        to: NOTIFICATION_EMAIL,
+        from: `"Shoaib Portfolio" <${settings.smtpUser || recipient}>`,
+        to: recipient,
         replyTo: inquiry.email,
         subject: subject,
         text: textBody,
         html: htmlBody,
       });
-      console.log(`[Email] Notification email successfully sent to ${NOTIFICATION_EMAIL}`);
-      return { sent: true };
-    } catch (emailErr) {
+      console.log(`[Email] Notification email successfully sent to ${recipient}`);
+      return { sent: true, recipient };
+    } catch (emailErr: any) {
       console.error('[Email] Failed to send email via SMTP transport:', emailErr);
-      return { sent: false, error: String(emailErr) };
+      return { sent: false, error: String(emailErr.message || emailErr), recipient };
     }
   } else {
     console.log('--------------------------------------------------');
-    console.log(`[Email Notification Log] To: ${NOTIFICATION_EMAIL}`);
+    console.log(`[Email Notification Log] To: ${recipient}`);
     console.log(`Subject: ${subject}`);
     console.log(textBody);
     console.log('--------------------------------------------------');
-    console.log('[Email] (SMTP not configured in environment; inquiry recorded and logged.)');
-    return { sent: false, reason: 'SMTP not configured. Submission saved in database.' };
+    console.log('[Email] (SMTP not configured in environment or settings; inquiry recorded in inquiries.json database and log.)');
+    return {
+      sent: false,
+      reason: 'SMTP password not configured. Saved in database.',
+      recipient,
+    };
   }
 }
 
@@ -399,11 +460,39 @@ async function startServer() {
         console.error('Email dispatch error:', e);
       }
 
+      const emailSettings = getEmailSettings();
+      const targetEmail = emailSettings.recipientEmail || NOTIFICATION_EMAIL;
+      const mailtoSubject = encodeURIComponent(`Project Inquiry: ${newInquiry.fullName} - ${newInquiry.serviceNeeded}`);
+      const mailtoBody = encodeURIComponent(`Hi Shoaib,
+
+Here are my project details submitted through your portfolio:
+
+Name: ${newInquiry.fullName}
+Email: ${newInquiry.email}
+Phone / WhatsApp: ${newInquiry.phone || 'N/A'}
+Country: ${newInquiry.country || 'N/A'}
+Service Needed: ${newInquiry.serviceNeeded} ${newInquiry.otherService ? `(${newInquiry.otherService})` : ''}
+Estimated Budget: ${newInquiry.budget} ${newInquiry.customBudget ? `[Custom: ${newInquiry.customBudget}]` : ''}
+Timeline: ${newInquiry.timeline}
+
+Project Description:
+${newInquiry.projectDescription}
+
+${newInquiry.additionalInfo ? `Additional Notes:\n${newInquiry.additionalInfo}\n` : ''}
+Reference ID: ${newInquiry.id}`);
+      const directMailtoUrl = `mailto:${targetEmail}?subject=${mailtoSubject}&body=${mailtoBody}`;
+
+      const whatsappText = encodeURIComponent(`Hi Shoaib, I just submitted my project inquiry on your portfolio!\n\nName: ${newInquiry.fullName}\nService: ${newInquiry.serviceNeeded}\nBudget: ${newInquiry.budget}\nReference ID: ${newInquiry.id}`);
+      const whatsappUrl = `https://wa.me/923300258247?text=${whatsappText}`;
+
       res.status(201).json({
         success: true,
         message: 'Your project inquiry has been saved successfully.',
         inquiryId: newInquiry.id,
         emailStatus: emailResult,
+        directMailtoUrl,
+        whatsappUrl,
+        recipientEmail: targetEmail,
       });
     } catch (err: any) {
       console.error('Error handling inquiry submission:', err);
@@ -527,6 +616,118 @@ async function startServer() {
       hasCustomFavicon: false,
       faviconUrl: '/favicon.svg',
     });
+  });
+
+  // Admin: Get Email Notification Settings
+  app.get('/api/admin/email-settings', checkAdminAuth, (req: Request, res: Response): void => {
+    const settings = getEmailSettings();
+    res.json({
+      success: true,
+      settings: {
+        provider: settings.provider || 'gmail',
+        recipientEmail: settings.recipientEmail || NOTIFICATION_EMAIL,
+        smtpHost: settings.smtpHost || 'smtp.gmail.com',
+        smtpPort: settings.smtpPort || 465,
+        smtpSecure: settings.smtpSecure !== false,
+        smtpUser: settings.smtpUser || 'shoaibop65@gmail.com',
+        hasPassword: Boolean(settings.smtpPass),
+        web3formsKey: settings.web3formsKey || '',
+        updatedAt: settings.updatedAt || null,
+      },
+    });
+  });
+
+  // Admin: Update Email Notification Settings
+  app.post('/api/admin/email-settings', checkAdminAuth, (req: Request, res: Response): void => {
+    const { provider, recipientEmail, smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, web3formsKey } = req.body;
+    const current = getEmailSettings();
+
+    const updated: EmailSettings = {
+      provider: provider || current.provider || 'gmail',
+      recipientEmail: recipientEmail ? String(recipientEmail).trim() : current.recipientEmail || NOTIFICATION_EMAIL,
+      smtpHost: smtpHost ? String(smtpHost).trim() : current.smtpHost || 'smtp.gmail.com',
+      smtpPort: smtpPort ? parseInt(smtpPort, 10) : current.smtpPort || 465,
+      smtpSecure: smtpSecure !== undefined ? Boolean(smtpSecure) : current.smtpSecure !== false,
+      smtpUser: smtpUser ? String(smtpUser).trim() : current.smtpUser || 'shoaibop65@gmail.com',
+      smtpPass: smtpPass !== undefined && smtpPass !== '' ? String(smtpPass).trim() : current.smtpPass || '',
+      web3formsKey: web3formsKey !== undefined ? String(web3formsKey).trim() : current.web3formsKey || '',
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveEmailSettings(updated);
+    res.json({
+      success: true,
+      message: `Email settings saved. Notifications will be delivered to ${updated.recipientEmail}.`,
+      recipientEmail: updated.recipientEmail,
+    });
+  });
+
+  // Admin: Test Email Dispatch to shoaibop65@gmail.com
+  app.post('/api/admin/email-settings/test', checkAdminAuth, async (req: Request, res: Response): Promise<void> => {
+    const settings = getEmailSettings();
+    const recipient = settings.recipientEmail || NOTIFICATION_EMAIL;
+
+    if (!settings.smtpPass) {
+      res.status(400).json({
+        success: false,
+        error: `Please enter your Gmail App Password or SMTP password to test delivery to ${recipient}.`,
+      });
+      return;
+    }
+
+    try {
+      const isGmail = (settings.smtpHost || '').toLowerCase().includes('gmail');
+      const transporter = nodemailer.createTransport(
+        isGmail
+          ? {
+              service: 'gmail',
+              auth: {
+                user: settings.smtpUser || recipient,
+                pass: settings.smtpPass,
+              },
+            }
+          : {
+              host: settings.smtpHost,
+              port: settings.smtpPort || 587,
+              secure: settings.smtpPort === 465,
+              auth: {
+                user: settings.smtpUser,
+                pass: settings.smtpPass,
+              },
+            }
+      );
+
+      await transporter.sendMail({
+        from: `"Shoaib Portfolio" <${settings.smtpUser || recipient}>`,
+        to: recipient,
+        subject: `Test Notification: Portfolio Email System Working`,
+        text: `Hello Shoaib,\n\nThis is a test notification confirming that your portfolio inquiry email system is configured and working!\n\nWhen clients submit project details, you will receive them instantly here.\n\nDate: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' })} (PKT)`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; background: #faf8f3; border: 1px solid #e2ddd3;">
+            <h2 style="color: #a06634; margin-top: 0; text-transform: uppercase;">Email System Connected!</h2>
+            <p style="font-size: 14px; color: #1a1a1a; line-height: 1.6;">
+              Hello Shoaib,<br/><br/>
+              This is a test notification confirming that your portfolio email system is properly connected to <strong>${recipient}</strong>.
+            </p>
+            <div style="background: #ffffff; padding: 12px; border-left: 3px solid #a06634; margin: 16px 0; font-size: 13px;">
+              All future client project inquiries will be delivered automatically to this inbox.
+            </div>
+            <p style="font-size: 11px; color: #888; margin-bottom: 0;">Timestamp: ${new Date().toISOString()}</p>
+          </div>
+        `,
+      });
+
+      res.json({
+        success: true,
+        message: `Test email successfully sent to ${recipient}! Check your inbox (or spam folder).`,
+      });
+    } catch (testErr: any) {
+      console.error('Test email failure:', testErr);
+      res.status(500).json({
+        success: false,
+        error: `Could not send email: ${testErr.message || String(testErr)}`,
+      });
+    }
   });
 
   // Vite middleware for development

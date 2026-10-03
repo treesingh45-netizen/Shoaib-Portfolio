@@ -41,7 +41,7 @@ const statusBadgeClasses: Record<string, string> = {
 export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }: AdminPortalModalProps) {
   const [password, setPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'inquiries' | 'branding'>('inquiries');
+  const [activeTab, setActiveTab] = useState<'inquiries' | 'branding' | 'email'>('inquiries');
   const [inquiries, setInquiries] = useState<StoredInquiry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -52,12 +52,25 @@ export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }:
   // Branding / Favicon state
   const [faviconPreview, setFaviconPreview] = useState<string>('/api/favicon');
   const [uploadedDataUrl, setUploadedDataUrl] = useState<string | undefined>(undefined);
-  const [uploadedFileName, setUploadedFileName] = useState<string>('Logo.png');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('favicon.png');
   const [driveUrl, setDriveUrl] = useState<string>('');
   const [showInNavbar, setShowInNavbar] = useState<boolean>(true);
   const [hasCustomFavicon, setHasCustomFavicon] = useState<boolean>(false);
   const [brandingStatusMsg, setBrandingStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSavingBranding, setIsSavingBranding] = useState<boolean>(false);
+
+  // Email Notification Settings state
+  const [emailProvider, setEmailProvider] = useState<'gmail' | 'smtp'>('gmail');
+  const [recipientEmail, setRecipientEmail] = useState<string>('shoaibop65@gmail.com');
+  const [smtpHost, setSmtpHost] = useState<string>('smtp.gmail.com');
+  const [smtpPort, setSmtpPort] = useState<number>(465);
+  const [smtpSecure, setSmtpSecure] = useState<boolean>(true);
+  const [smtpUser, setSmtpUser] = useState<string>('shoaibop65@gmail.com');
+  const [smtpPass, setSmtpPass] = useState<string>('');
+  const [hasPasswordSaved, setHasPasswordSaved] = useState<boolean>(false);
+  const [emailStatusMsg, setEmailStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSavingEmail, setIsSavingEmail] = useState<boolean>(false);
+  const [isTestingEmail, setIsTestingEmail] = useState<boolean>(false);
 
   // ESC to close
   useEffect(() => {
@@ -83,6 +96,7 @@ export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }:
         setInquiries(data.inquiries);
         setIsAuthenticated(true);
         fetchBrandingInfo();
+        fetchEmailSettingsInfo(pwd);
       } else {
         setLoginError(data.error || 'Authentication failed. Please check the admin password.');
         setIsAuthenticated(false);
@@ -106,12 +120,97 @@ export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }:
       if (res.ok && data.success) {
         setFaviconPreview(data.faviconUrl || '/favicon.svg');
         setDriveUrl(data.driveUrl || '');
-        setUploadedFileName(data.fileName || 'Logo.png');
+        setUploadedFileName(data.fileName || 'favicon.png');
         setShowInNavbar(data.showInNavbar !== false);
         setHasCustomFavicon(Boolean(data.hasCustomFavicon));
       }
     } catch (err) {
       console.error('Error loading branding info:', err);
+    }
+  };
+
+  const fetchEmailSettingsInfo = async (pwd: string) => {
+    try {
+      const res = await fetch('/api/admin/email-settings', {
+        headers: { 'x-admin-password': pwd },
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.settings) {
+        setEmailProvider(data.settings.provider || 'gmail');
+        setRecipientEmail(data.settings.recipientEmail || 'shoaibop65@gmail.com');
+        setSmtpHost(data.settings.smtpHost || 'smtp.gmail.com');
+        setSmtpPort(data.settings.smtpPort || 465);
+        setSmtpSecure(data.settings.smtpSecure !== false);
+        setSmtpUser(data.settings.smtpUser || 'shoaibop65@gmail.com');
+        setHasPasswordSaved(Boolean(data.settings.hasPassword));
+      }
+    } catch (err) {
+      console.error('Error loading email settings:', err);
+    }
+  };
+
+  const handleSaveEmailSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingEmail(true);
+    setEmailStatusMsg(null);
+    try {
+      const res = await fetch('/api/admin/email-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': password,
+        },
+        body: JSON.stringify({
+          provider: emailProvider,
+          recipientEmail: recipientEmail.trim(),
+          smtpHost: smtpHost.trim(),
+          smtpPort,
+          smtpSecure,
+          smtpUser: smtpUser.trim(),
+          smtpPass: smtpPass.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailStatusMsg({
+          type: 'success',
+          text: `Settings saved! All future inquiries will be delivered to ${data.recipientEmail}.`,
+        });
+        if (smtpPass) {
+          setHasPasswordSaved(true);
+          setSmtpPass('');
+        }
+      } else {
+        setEmailStatusMsg({ type: 'error', text: data.error || 'Failed to save email settings.' });
+      }
+    } catch (err) {
+      setEmailStatusMsg({ type: 'error', text: 'Network error while saving email settings.' });
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const handleTestEmail = async () => {
+    setIsTestingEmail(true);
+    setEmailStatusMsg(null);
+    try {
+      const res = await fetch('/api/admin/email-settings/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-password': password,
+        },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEmailStatusMsg({ type: 'success', text: data.message });
+      } else {
+        setEmailStatusMsg({ type: 'error', text: data.error || 'Failed to deliver test email.' });
+      }
+    } catch (err: any) {
+      setEmailStatusMsg({ type: 'error', text: 'Could not connect to server for test email.' });
+    } finally {
+      setIsTestingEmail(false);
     }
   };
 
@@ -310,6 +409,21 @@ export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }:
                       <ImageIcon size={12} />
                       Favicon & Logo
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('email');
+                        fetchEmailSettingsInfo(password);
+                      }}
+                      className={`px-3 py-1.5 transition-colors flex items-center gap-1.5 cursor-pointer ${
+                        activeTab === 'email'
+                          ? 'bg-emerald-800 text-white'
+                          : 'text-brand-charcoal/70 hover:text-brand-primary'
+                      }`}
+                    >
+                      <Mail size={12} />
+                      Email ({recipientEmail})
+                    </button>
                   </div>
                 )}
 
@@ -459,7 +573,7 @@ export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }:
                       className="px-4 py-2.5 border border-brand-charcoal/25 text-xs font-mono uppercase hover:bg-brand-bg transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <RotateCcw size={13} />
-                      Reset to Default S. Monogram
+                      Reset to Default SS Monogram
                     </button>
 
                     <button
@@ -468,6 +582,191 @@ export default function AdminPortalModal({ isOpen, onClose, onBrandingUpdated }:
                       className="px-6 py-2.5 bg-brand-primary hover:bg-brand-charcoal text-brand-bg text-xs font-bold tracking-[0.18em] uppercase transition-colors cursor-pointer"
                     >
                       {isSavingBranding ? 'Saving...' : 'Save & Apply Favicon'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : activeTab === 'email' ? (
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-brand-bg/30">
+                <form
+                  onSubmit={handleSaveEmailSettings}
+                  className="max-w-2xl mx-auto bg-white border border-brand-charcoal/15 p-6 md:p-8 shadow-xs space-y-6"
+                >
+                  <div className="border-b border-brand-charcoal/10 pb-4 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-800 font-bold block">
+                        Email Notifications
+                      </span>
+                      <h4 className="text-xl font-serif font-bold text-brand-charcoal">
+                        Receive Project Details on {recipientEmail}
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 border border-emerald-200 text-emerald-800 text-xs font-mono font-bold">
+                      <Mail size={14} />
+                      {hasPasswordSaved ? 'Connected' : 'Setup Required'}
+                    </div>
+                  </div>
+
+                  {emailStatusMsg && (
+                    <div
+                      className={`p-3.5 text-xs border rounded-xs ${
+                        emailStatusMsg.type === 'success'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-red-50 border-red-200 text-red-700'
+                      }`}
+                    >
+                      {emailStatusMsg.text}
+                    </div>
+                  )}
+
+                  {/* Recipient Email */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-charcoal mb-1">
+                      Recipient Email (Where you receive project inquiries)
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={recipientEmail}
+                      onChange={(e) => setRecipientEmail(e.target.value)}
+                      placeholder="shoaibop65@gmail.com"
+                      className="w-full bg-brand-bg/40 border border-brand-charcoal/20 px-3.5 py-2.5 text-xs font-mono focus:border-brand-primary focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Provider Preset */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-brand-charcoal mb-2">
+                      Dispatch Method
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmailProvider('gmail');
+                          setSmtpHost('smtp.gmail.com');
+                          setSmtpPort(465);
+                          setSmtpSecure(true);
+                          setSmtpUser(recipientEmail || 'shoaibop65@gmail.com');
+                        }}
+                        className={`p-3 border text-left rounded-xs transition-colors cursor-pointer ${
+                          emailProvider === 'gmail'
+                            ? 'border-emerald-700 bg-emerald-50/50'
+                            : 'border-brand-charcoal/15 bg-brand-bg/40 hover:border-brand-primary'
+                        }`}
+                      >
+                        <p className="text-xs font-bold uppercase text-brand-charcoal">Gmail (Recommended)</p>
+                        <p className="text-[10px] text-brand-charcoal/60 mt-0.5">Use smtp.gmail.com with your Google App Password</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEmailProvider('smtp')}
+                        className={`p-3 border text-left rounded-xs transition-colors cursor-pointer ${
+                          emailProvider === 'smtp'
+                            ? 'border-emerald-700 bg-emerald-50/50'
+                            : 'border-brand-charcoal/15 bg-brand-bg/40 hover:border-brand-primary'
+                        }`}
+                      >
+                        <p className="text-xs font-bold uppercase text-brand-charcoal">Custom SMTP</p>
+                        <p className="text-[10px] text-brand-charcoal/60 mt-0.5">Brevo, SendGrid, Mailgun, Postmark, AWS SES</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SMTP Credentials */}
+                  <div className="space-y-4 pt-2 border-t border-brand-charcoal/10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase text-brand-charcoal mb-1">
+                          SMTP Host
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={smtpHost}
+                          onChange={(e) => setSmtpHost(e.target.value)}
+                          className="w-full bg-brand-bg/40 border border-brand-charcoal/20 px-3 py-2 text-xs font-mono focus:border-brand-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase text-brand-charcoal mb-1">
+                          SMTP Port (465 SSL / 587 TLS)
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          value={smtpPort}
+                          onChange={(e) => setSmtpPort(parseInt(e.target.value, 10))}
+                          className="w-full bg-brand-bg/40 border border-brand-charcoal/20 px-3 py-2 text-xs font-mono focus:border-brand-primary focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase text-brand-charcoal mb-1">
+                          SMTP Username / Email
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={smtpUser}
+                          onChange={(e) => setSmtpUser(e.target.value)}
+                          placeholder="shoaibop65@gmail.com"
+                          className="w-full bg-brand-bg/40 border border-brand-charcoal/20 px-3 py-2 text-xs font-mono focus:border-brand-primary focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase text-brand-charcoal mb-1">
+                          {emailProvider === 'gmail' ? 'Google App Password (16 chars)' : 'SMTP Password'}
+                          {hasPasswordSaved && <span className="text-emerald-700 ml-1.5 lowercase font-normal">(saved)</span>}
+                        </label>
+                        <input
+                          type="password"
+                          value={smtpPass}
+                          onChange={(e) => setSmtpPass(e.target.value)}
+                          placeholder={hasPasswordSaved ? '•••••••••••••••• (leave blank to keep current)' : 'Enter password / app password'}
+                          className="w-full bg-brand-bg/40 border border-brand-charcoal/20 px-3 py-2 text-xs font-mono focus:border-brand-primary focus:outline-none tracking-wider"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Gmail Help Guide */}
+                  {emailProvider === 'gmail' && (
+                    <div className="p-4 bg-brand-bg/60 border border-brand-charcoal/15 text-xs rounded-xs space-y-1.5">
+                      <p className="font-bold text-brand-charcoal uppercase text-[10px] tracking-wider">
+                        How to get a Gmail App Password in 1 minute:
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1 text-brand-charcoal/80 text-[11px]">
+                        <li>Open <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="text-brand-primary underline font-medium">Google Account Security</a>.</li>
+                        <li>Make sure <strong>2-Step Verification</strong> is ON.</li>
+                        <li>Search for or click <strong>App passwords</strong>.</li>
+                        <li>Create a new app password named <em>"Portfolio Website"</em>.</li>
+                        <li>Copy the generated 16-character code (e.g. <code className="font-mono bg-white px-1">abcd efgh ijkl mnop</code>) and paste it into the password field above.</li>
+                      </ol>
+                    </div>
+                  )}
+
+                  {/* Buttons */}
+                  <div className="pt-4 border-t border-brand-charcoal/15 flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={handleTestEmail}
+                      disabled={isTestingEmail || !hasPasswordSaved && !smtpPass}
+                      className="px-4 py-2.5 border border-emerald-800 text-emerald-800 hover:bg-emerald-50 text-xs font-mono uppercase transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <Mail size={13} />
+                      {isTestingEmail ? 'Sending Test Email...' : `Send Test Email to ${recipientEmail}`}
+                    </button>
+
+                    <button
+                      type="submit"
+                      disabled={isSavingEmail}
+                      className="px-6 py-2.5 bg-emerald-800 hover:bg-brand-charcoal text-white text-xs font-bold tracking-[0.18em] uppercase transition-colors cursor-pointer"
+                    >
+                      {isSavingEmail ? 'Saving...' : 'Save Email Settings'}
                     </button>
                   </div>
                 </form>

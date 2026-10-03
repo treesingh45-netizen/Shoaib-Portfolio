@@ -1,30 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1a1a1a" />
-      <stop offset="100%" stop-color="#26221e" />
+    <linearGradient id="bronze" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b67c46" />
+      <stop offset="50%" stop-color="#a06634" />
+      <stop offset="100%" stop-color="#845024" />
     </linearGradient>
-    <linearGradient id="bronzeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#c48b56" />
-      <stop offset="50%" stop-color="#9b6738" />
-      <stop offset="100%" stop-color="#7d5027" />
-    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#a06634" flood-opacity="0.15" />
+    </filter>
   </defs>
-  <!-- Background Rounded Square -->
-  <rect width="128" height="128" rx="24" fill="url(#bgGrad)" />
-  <!-- Subtle Inner Frame -->
-  <rect x="8" y="8" width="112" height="112" rx="18" fill="none" stroke="url(#bronzeGrad)" stroke-width="2" stroke-opacity="0.65" />
-  <!-- Monogram MS / S Editorial Typography -->
+  <!-- Minimalist warm cream background matching the portfolio aesthetic -->
+  <rect width="512" height="512" rx="40" fill="#faf8f3" />
+  
+  <!-- Interlocking Luxury SS Monogram -->
+  <!-- Upper Left S -->
   <text
-    x="58"
-    y="86"
-    text-anchor="middle"
-    font-family="Georgia, 'Playfair Display', 'Times New Roman', serif"
-    font-size="68"
+    x="215"
+    y="285"
+    font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
+    font-size="290"
     font-weight="600"
-    fill="#faf8f3"
-    letter-spacing="-2"
+    fill="url(#bronze)"
+    text-anchor="middle"
+    filter="url(#softShadow)"
   >S</text>
-  <!-- Signature Bronze Accent Dot -->
-  <circle cx="92" cy="80" r="7" fill="url(#bronzeGrad)" />
+
+  <!-- Lower Right S with clean cream knockout cutout stroke to create interlacing effect -->
+  <text
+    x="298"
+    y="355"
+    font-family="'Playfair Display', Georgia, 'Times New Roman', serif"
+    font-size="290"
+    font-weight="600"
+    fill="url(#bronze)"
+    stroke="#faf8f3"
+    stroke-width="12"
+    stroke-linejoin="round"
+    paint-order="stroke fill"
+    text-anchor="middle"
+    filter="url(#softShadow)"
+  >S</text>
 </svg>

@@ -17,7 +17,9 @@ import {
   Send,
   ArrowRight,
   ShieldCheck,
-  Check
+  Check,
+  Mail,
+  Phone
 } from 'lucide-react';
 import { ProjectInquiryData, UploadedFile } from '../types/inquiry';
 
@@ -141,6 +143,11 @@ export default function ProjectInquiryForm({ isModal = false }: ProjectInquiryFo
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [submissionResult, setSubmissionResult] = useState<{
+    directMailtoUrl?: string;
+    whatsappUrl?: string;
+    recipientEmail?: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Toggle goal selection
@@ -253,6 +260,11 @@ export default function ProjectInquiryForm({ isModal = false }: ProjectInquiryFo
       if (response.ok && result.success) {
         setIsSubmitted(true);
         setSubmittedId(result.inquiryId);
+        setSubmissionResult({
+          directMailtoUrl: result.directMailtoUrl,
+          whatsappUrl: result.whatsappUrl,
+          recipientEmail: result.recipientEmail || 'shoaibop65@gmail.com',
+        });
       } else {
         throw new Error(result.error || 'Failed to submit inquiry.');
       }
@@ -281,10 +293,42 @@ export default function ProjectInquiryForm({ isModal = false }: ProjectInquiryFo
           Your information has been received successfully. I’ll review your requirements and contact you by email with the next steps.
         </p>
         {submittedId && (
-          <div className="inline-block px-4 py-2 bg-brand-bg border border-brand-charcoal/15 text-xs font-mono text-brand-charcoal/70 mb-8 rounded-xs">
+          <div className="inline-block px-4 py-2 bg-brand-bg border border-brand-charcoal/15 text-xs font-mono text-brand-charcoal/70 mb-6 rounded-xs">
             Reference ID: <span className="font-bold text-brand-primary">{submittedId}</span>
           </div>
         )}
+
+        {/* Direct Email & WhatsApp Immediate Dispatch Card */}
+        <div className="bg-brand-bg/70 border border-brand-primary/25 p-5 mb-8 rounded-xs text-left">
+          <div className="flex items-center gap-2 mb-2">
+            <Mail size={16} className="text-brand-primary" />
+            <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-brand-charcoal">
+              Delivering to {submissionResult?.recipientEmail || 'shoaibop65@gmail.com'}
+            </h4>
+          </div>
+          <p className="text-xs text-brand-charcoal/70 mb-4 font-sans leading-relaxed">
+            Your project details are saved in the database. You can also send a pre-formatted copy directly to Shoaib right now via email or WhatsApp:
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a
+              href={submissionResult?.directMailtoUrl || "mailto:shoaibop65@gmail.com"}
+              className="py-3 px-4 bg-brand-primary hover:bg-brand-charcoal text-brand-bg text-[10px] font-bold tracking-[0.16em] uppercase transition-colors flex items-center justify-center gap-2 rounded-xs"
+            >
+              <Mail size={14} />
+              <span>Email shoaibop65@gmail.com</span>
+            </a>
+            <a
+              href={submissionResult?.whatsappUrl || "https://wa.me/923300258247"}
+              target="_blank"
+              rel="noreferrer"
+              className="py-3 px-4 border border-brand-charcoal/30 hover:border-brand-primary hover:bg-brand-bg text-brand-charcoal text-[10px] font-bold tracking-[0.16em] uppercase transition-colors flex items-center justify-center gap-2 rounded-xs"
+            >
+              <Phone size={14} className="text-brand-primary" />
+              <span>WhatsApp Message</span>
+            </a>
+          </div>
+        </div>
+
         <div className="pt-6 border-t border-brand-charcoal/10 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
             onClick={() => {

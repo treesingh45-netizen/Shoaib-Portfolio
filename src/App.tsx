@@ -28,31 +28,24 @@ export default function App() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return null;
 
-      // Rounded dark charcoal square background
-      ctx.fillStyle = '#1a1a1a';
+      // Ivory cream background matching uploaded favicon
+      ctx.fillStyle = '#faf8f3';
       ctx.beginPath();
-      ctx.roundRect(0, 0, 64, 64, 12);
+      ctx.roundRect(0, 0, 64, 64, 10);
       ctx.fill();
 
-      // Inner bronze border
-      ctx.strokeStyle = '#9b6738';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(4, 4, 56, 56, 9);
-      ctx.stroke();
-
-      // Serif "S" monogram
-      ctx.fillStyle = '#faf8f3';
-      ctx.font = 'bold 38px Georgia, "Playfair Display", serif';
+      // Serif "S" monogram - upper left
+      ctx.fillStyle = '#a06634';
+      ctx.font = 'bold 36px Georgia, "Playfair Display", serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('S', 28, 35);
+      ctx.fillText('S', 26, 30);
 
-      // Bronze dot
-      ctx.fillStyle = '#9b6738';
-      ctx.beginPath();
-      ctx.arc(46, 42, 4.5, 0, Math.PI * 2);
-      ctx.fill();
+      // Serif "S" monogram - lower right with knockout outline for interlocking effect
+      ctx.strokeStyle = '#faf8f3';
+      ctx.lineWidth = 3;
+      ctx.strokeText('S', 38, 38);
+      ctx.fillText('S', 38, 38);
 
       return canvas.toDataURL('image/png');
     } catch {
